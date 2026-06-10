@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String         @id @default(cuid())
+  name             String?
+  email            String?        @unique
+  emailVerified    DateTime?
+  image            String?
+  stripeCustomerId String?        @unique
+  credits          Int            @default(3)
+  jobs             Job[]
+  billingEvents    BillingEvent[]
+  createdAt        DateTime       @default(now())
+}
+
+model Job {
+  id        String   @id @default(cuid())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  type      String
+  status    String   @default("queued")
+  meta      String?
+  assets    Asset[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Asset {
+  id        String   @id @default(cuid())
+  job       Job?     @relation(fields: [jobId], references: [id])
+  jobId     String?
+  url       String
+  key       String
+  createdAt DateTime @default(now())
+}
+
+model BillingEvent {
+  id              String   @id @default(cuid())
+  user            User?    @relation(fields: [userId], references: [id])
+  userId          String?
+  type            String
+  amountCents     Int      @default(0)
+  credits         Int      @default(0)
+  currency        String   @default("usd")
+  stripeSessionId String?
+  metadata        String?
+  createdAt       DateTime @default(now())
+}
