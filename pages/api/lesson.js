@@ -195,20 +195,38 @@ function gatherResponseText(completion) {
 }
 
 async function callOpenAI(question) {
+  // Optional web retrieval augmentation: if BING_SEARCH_API_KEY is set, fetch top search snippets
+  // and include them in the prompt as context. This improves factual grounding for topics.
+  async function webSearch(query) {
+    if (!process.env.BING_SEARCH_API_KEY) return null;
+    try {
+      const url = `https://api.bing.microsoft.com/v7.0/search?q=${encodeURIComponent(query)}&count=3&mkt=en-US`;
+      const r = await fetch(url, { headers: { 'Ocp-Apim-Subscription-Key': process.env.BING_SEARCH_API_KEY } });
+      if (!r.ok) return null;
+      const j = await r.json();
+      const hits = (j.webPages && j.webPages.value) || [];
+      return hits.slice(0, 3).map((p) => ({ name: p.name, url: p.url, snippet: p.snippet }));
+    } catch (e) {
+      console.warn('Web search failed:', e?.message || e);
+      return null;
+    }
+  }
+
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  const searchHits = await webSearch(question);
+
+  const inputMessages = [];
+  inputMessages.push({ role: 'system', content: 'You are an expert visual educator and storyboard designer. Return only the exact JSON object defined by the schema with no additional explanation, headers, or markdown.' });
+  if (searchHits && searchHits.length) {
+    const ctx = searchHits.map((s, i) => `Result ${i + 1}: ${s.name}\n${s.url}\n${s.snippet}`).join('\n\n');
+    inputMessages.push({ role: 'system', content: `Context: Relevant web search results for the question (use as factual context but do not fabricate):\n\n${ctx}` });
+  }
+  inputMessages.push({ role: 'user', content: `Create a concise lesson storyboard for the prompt below. Focus on clean, animation-ready scene structure and valid JSON output.\n\nSchema:\n${JSON.stringify(lessonResponseSchema, null, 2)}\n\nQuestion: ${question}` });
 
   const response = await client.responses.create({
     model: 'gpt-4.1-mini',
-    input: [
-      {
-        role: 'system',
-        content: 'You are an expert visual educator and storyboard designer. Return only the exact JSON object defined by the schema with no additional explanation, headers, or markdown.'
-      },
-      {
-        role: 'user',
-        content: `Create a concise lesson storyboard for the prompt below. Focus on clean, animation-ready scene structure and valid JSON output.\n\nSchema:\n${JSON.stringify(lessonResponseSchema, null, 2)}\n\nQuestion: ${question}`
-      }
-    ],
+    input: inputMessages,
     max_output_tokens: 1200,
     text: {
       format: {
