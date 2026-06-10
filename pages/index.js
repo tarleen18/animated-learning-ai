@@ -3,10 +3,8 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 
 function Bubble({ role, children }) {
   return (
-    <div style={{ display: 'flex', justifyContent: role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 12 }}>
-      <div style={{ maxWidth: '75%', padding: '12px 16px', borderRadius: 18, background: role === 'user' ? '#2563eb' : '#eef2ff', color: role === 'user' ? 'white' : '#0f172a' }}>
-        {children}
-      </div>
+    <div className={role === 'user' ? 'bubble user' : 'bubble'}>
+      {children}
     </div>
   );
 }
@@ -115,63 +113,91 @@ export default function Home() {
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.app}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #eef2ff', fontWeight: 700 }}>
-          <div>Animated Learning — Chat</div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {session?.user ? (
-              <>
-                <div style={{ color: '#0f172a' }}>{session.user.name || session.user.email}</div>
-                <div style={{ background: '#eef2ff', padding: '6px 10px', borderRadius: 999, color: '#0f172a' }}>
-                  Credits: {session.user.credits ?? 0}
-                </div>
-                <button onClick={purchaseCredits} disabled={billingLoading} style={{ border: 'none', background: '#2563eb', color: 'white', padding: '8px 12px', borderRadius: 10, cursor: 'pointer' }}>
-                  {billingLoading ? 'Loading…' : 'Buy credits'}
-                </button>
-                <button onClick={() => signOut()} style={{ border: 'none', background: 'transparent', color: '#2563eb', cursor: 'pointer' }}>Sign out</button>
-              </>
-            ) : (
-              <button onClick={() => signIn()} style={{ border: 'none', background: 'transparent', color: '#2563eb', cursor: 'pointer' }}>Sign in</button>
-            )}
-          </div>
-        </div>
-        <div style={styles.content} ref={listRef}>
-          {messages.map((m) => (
-            <div key={m.id} style={{ marginBottom: 8 }}>
-              <Bubble role={m.role}>
-                {m.text}
-                {m.lesson && (
-                  <div style={{ marginTop: 8 }}>
-                    <div style={styles.lessonPreview}>
-                      <p><strong>Objective:</strong> {m.lesson.learningObjective}</p>
-                      <p><strong>Key Concepts:</strong> {m.lesson.keyConcepts?.join(', ')}</p>
-                      <div style={{ display: 'grid', gap: 8 }}>
-                        {m.lesson.storyboard?.slice(0,3).map(s => (
-                          <div key={s.number} style={styles.sceneSmall}><strong>Scene {s.number}:</strong> {s.onScreenText}</div>
-                        ))}
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <button style={styles.primaryButton} onClick={() => handleRender(m.lesson)}>Render Lesson</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {m.videoUrl && (
-                  <div style={{ marginTop: 8 }}>
-                    <video src={m.videoUrl} controls style={{ width: '100%', borderRadius: 12 }} />
-                    <a href={m.videoUrl} download style={{ display: 'block', marginTop: 6 }}>Download</a>
-                  </div>
-                )}
-              </Bubble>
+    <div className="app-root">
+      <div className="app-shell">
+        <aside className="sidebar">
+          <div className="brand">
+            <div className="logo">AL</div>
+            <div>
+              <h1>Animated Learning</h1>
+              <p className="muted">Create animated lessons with AI</p>
             </div>
-          ))}
-        </div>
+          </div>
 
-        <div style={styles.inputRow}>
-          <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={2} style={styles.input} />
-          <button style={styles.sendButton} onClick={send} disabled={loading}>{loading ? '...' : 'Send'}</button>
-        </div>
+          <div className="controls">
+            <button className="btn btn-primary" onClick={() => setMessages([{ id: 1, role: 'assistant', text: 'Hi — ask me a question and I will design an animated lesson storyboard for it.' }])}>New Lesson</button>
+            <button className="btn btn-ghost" onClick={() => purchaseCredits()}>{billingLoading ? 'Loading…' : 'Buy Credits'}</button>
+            <div className="muted">Pro tip: Try “Explain photosynthesis”</div>
+          </div>
+        </aside>
+
+        <main className="main">
+          <div className="header">
+            <div className="title">AI Lesson Designer</div>
+            <div className="meta">
+              {session?.user ? (
+                <>
+                  <div className="muted">{session.user.name || session.user.email}</div>
+                  <div className="muted">Credits: {session.user.credits ?? 0}</div>
+                  <button className="btn btn-ghost" onClick={() => signOut()}>Sign out</button>
+                </>
+              ) : (
+                <button className="btn btn-ghost" onClick={() => signIn()}>Sign in</button>
+              )}
+            </div>
+          </div>
+
+          <div className="content">
+            <section className="chat" ref={listRef}>
+              <div className="messages">
+                {messages.map((m) => (
+                  <div key={m.id}>
+                    <Bubble role={m.role}>
+                      <div>{m.text}</div>
+                      {m.lesson && (
+                        <div className="lesson-preview">
+                          <div><strong>Objective:</strong> {m.lesson.learningObjective}</div>
+                          <div className="muted"><strong>Key Concepts:</strong> {m.lesson.keyConcepts?.join(', ')}</div>
+                          <div style={{ marginTop: 8 }}>
+                            {m.lesson.storyboard?.slice(0,3).map(s => (
+                              <div className="scene" key={s.number}><strong>Scene {s.number}:</strong> {s.onScreenText}</div>
+                            ))}
+                          </div>
+                          <div style={{ marginTop: 8 }}>
+                            <button className="btn btn-primary" onClick={() => handleRender(m.lesson)}>Render Lesson</button>
+                          </div>
+                        </div>
+                      )}
+                      {m.videoUrl && (
+                        <div style={{ marginTop: 8 }}>
+                          <video src={m.videoUrl} controls style={{ width: '100%', borderRadius: 12 }} />
+                          <a href={m.videoUrl} download style={{ display: 'block', marginTop: 6 }}>Download</a>
+                        </div>
+                      )}
+                    </Bubble>
+                  </div>
+                ))}
+              </div>
+
+              <div className="composer">
+                <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={2} />
+                <button className="btn btn-primary send" onClick={send} disabled={loading}>{loading ? '…' : 'Send'}</button>
+              </div>
+            </section>
+
+            <aside className="preview">
+              <h3 style={{margin:0}}>Lesson Preview</h3>
+              <div className="muted">Rendered preview and controls</div>
+              <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <div className="muted">No render yet</div>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn btn-ghost">Download</button>
+                <button className="btn btn-primary">Export</button>
+              </div>
+            </aside>
+          </div>
+        </main>
       </div>
     </div>
   );
