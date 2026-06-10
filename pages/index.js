@@ -181,8 +181,9 @@ export default function Home() {
 
               <div className="composer">
                 <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={2} />
-                <button className="btn btn-primary send" onClick={send} disabled={loading}>{loading ? '…' : 'Send'}</button>
+                <button className="btn btn-primary send" onClick={send} disabled={loading || !session?.user}>{loading ? '…' : 'Send'}</button>
               </div>
+              {!session?.user && <div className="muted" style={{ padding: '0 14px 12px' }}>Please sign in to generate an animated lesson.</div>}
             </section>
 
             <aside className="preview">
